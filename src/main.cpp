@@ -157,7 +157,7 @@ int main(int argc, char **argv)
         // std::cout << "Run in this line:stop" << __LINE__ << std::endl;
 
 
-        serial.write(stopCmd, 5);
+        //serial.write(stopCmd, 5);
 
         ros::Rate r(50);//发布周期为50hz
         while (ros::ok())
