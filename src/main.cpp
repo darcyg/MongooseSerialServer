@@ -41,6 +41,8 @@ int main(int argc, char **argv)
 
     try {
         CallbackAsyncSerial serial(port,baud);
+        // ROS_INFO("This line:[%d]", __LINE__);
+
         serial.setCallback(boost::bind(&xqserial_server::StatusPublisher::Update,&xq_status,_1,_2));
         xqserial_server::DiffDriverController xq_diffdriver(max_speed,cmd_topic,&xq_status,&serial);
         boost::thread cmd2serialThread(& xqserial_server::DiffDriverController::run,&xq_diffdriver);
@@ -61,16 +63,20 @@ int main(int argc, char **argv)
         char resetCmd2[] = {0xFF,0x02,0x04,0x14, 0x02, 0x74, 0x00, 0x9B, 0xED}; //速度0.2m/s,right  6.28rad
         char resetCmd3[] = {0xFF,0x02,0x04,0x14, 0x01, 0xD7, 0x00, 0x3B, 0xED}; //速度0.2m/s,backward  4.71
         char resetCmd4[] = {0xFF,0x02,0x04,0x14, 0x01, 0x3A, 0x00, 0xD6, 0xED}; //速度0.2m/s,left   3.14
+        char stopCmd[] = {0xFF, 0x04, 0x00, 0xFB, 0xED};
+
+        serial.write(stopCmd, 5);
+        sleep(0.5);
 
         sleep(3);
         // char resetCmd3[] = {0xFF,0x02,0x04,0x14, 0x0, 0x9D, 0x1E, 0x6E, 0xED}; //速度0.2m/s w = 0.3rad/s
-
+        ROS_INFO("This line:[%d]", __LINE__);
         serial.write(resetCmd1, 9);
         sleep(12.5);
 
         serial.write(resetCmd2, 9);
         sleep(12.5);
-
+        ROS_INFO("This line:[%d]", __LINE__);
         serial.write(resetCmd3, 9);
         sleep(12.5);
 
@@ -78,7 +84,7 @@ int main(int argc, char **argv)
         sleep(12.5);
 
         serial.write(stopCmd, 5);
-        //sleep(0.5);
+        sleep(0.5);
 
         // std::cout << "Run in this line:" << __LINE__ << std::endl;
 

@@ -34,6 +34,10 @@ typedef struct {
     int omga_BL;
     int omga_BR;
 
+    float velocity_x;
+    float velocity_y;
+    float angular_vel;
+
     float distance1;//第一个超声模块距离值 单位cm
     float distance2;//第二个超声模块距离值 单位cm
     float distance3;//第三个超声模块距离值 单位cm
@@ -70,6 +74,8 @@ private:
 
     //Wheel radius (assuming it's the same for the left and right wheels):meters
     double wheel_radius;
+
+    unsigned long package_last_time_stamp;
 
     geometry_msgs::Pose2D CarPos2D;//小车开始启动原点坐标系
     geometry_msgs::Twist  CarTwist;//小车自身坐标系

@@ -5,6 +5,8 @@
 #include "AsyncSerial.h"
 #include <std_msgs/Bool.h>
 
+#define INFORMATION_LENGTH 9
+
 namespace xqserial_server
 {
 
