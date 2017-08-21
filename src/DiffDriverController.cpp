@@ -220,7 +220,7 @@ void DiffDriverController::sendcmd(const geometry_msgs::Twist &command)
     uint32_t anglar;
 
     // std::cout << "x velocity:" << command.linear.x << std::endl;
-    // std::cout << "y velocity:" << command.linear.x << std::endl;
+    // std::cout << "y velocity:" << command.linear.y << std::endl;
     // std::cout << "angular velocity:" << command.angular.z << std::endl;
     // ROS_INFO("linear velocity:[%d]", (float)command.linear.x);
 

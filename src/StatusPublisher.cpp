@@ -239,7 +239,7 @@ void StatusPublisher::STM32_Encoder_IMU_Parse(std::vector<unsigned char> data)
             speed_x_temp = (speed_x_temp << 8);
             speed_x_temp |= data[4];
             speed_x = (float)(speed_x_temp / 100.0);
-            car_status.velocity_x = speed_x;
+            car_status.velocity_y = speed_x;
             
 
             //parse Vy.
@@ -247,7 +247,7 @@ void StatusPublisher::STM32_Encoder_IMU_Parse(std::vector<unsigned char> data)
             speed_y_temp = (speed_y_temp << 8);
             speed_y_temp |= data[6];
             speed_y = (float)(speed_y_temp / 100.0);
-            car_status.velocity_y = speed_y;
+            car_status.velocity_x = -speed_y;
             
             //parse W.
             angular_vel_temp |= data[7];
@@ -330,10 +330,10 @@ void StatusPublisher::STM32_Encoder_IMU_Parse(std::vector<unsigned char> data)
             time_stamp_sensors = (unsigned long)(time_stamp_temp);
             car_status.time_stamp = time_stamp_sensors;
             
-            // std::cout << "speed_x:" << speed_x << std::endl;
-            // std::cout << "speed_y:" << speed_y << std::endl;
-            // std::cout << "angular_vel:" << angular_vel << std::endl
-            //           << std::endl;
+            std::cout << "speed_x:" << car_status.velocity_x << std::endl;
+            std::cout << "speed_y:" << car_status.velocity_y << std::endl;
+            std::cout << "angular_vel:" << angular_vel << std::endl
+                      << std::endl;
             // std::cout << "imu_acc_x:" << imu_acc_x << std::endl;
             // std::cout << "imu_acc_y:" << imu_acc_y << std::endl;
             // std::cout << "imu_acc_z:" << imu_acc_z << std::endl
