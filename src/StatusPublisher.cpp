@@ -11,8 +11,8 @@
 #define PACKAGE_BEGIN 255
 #define COMMOND_BIT 249
 #define PACKAGE_END 237
-#define PACKAGE_LEN 33
-#define CRC_BIT 31
+#define PACKAGE_LEN 37
+#define CRC_BIT 35
 #define Pi 3.1415926
 
 namespace xqserial_server
@@ -194,22 +194,28 @@ void StatusPublisher::STM32_Encoder_IMU_Parse(std::vector<unsigned char> data)
     unsigned long long time_stamp_temp = 0;
 
     //from encoder.
-    float speed_x = 0;
-    float speed_y = 0;
-    float angular_vel = 0;
+    float speed_x = 0.0;
+    float speed_y = 0.0;
+    float angular_vel = 0.0;
+
+    int speed_x_check = 0;
+    int speed_y_check = 0;
+    int angular_vel_check = 0;
 
     //from IMU.
-    float imu_acc_x = 0;
-    float imu_acc_y = 0;
-    float imu_acc_z = 0;
+    float imu_acc_x = 0.0;
+    float imu_acc_y = 0.0;
+    float imu_acc_z = 0.0;
 
-    float imu_angular_vel_x = 0;
-    float imu_angular_vel_y = 0;
-    float imu_angular_vel_z = 0;
+    float imu_angular_vel_x = 0.0;
+    float imu_angular_vel_y = 0.0;
+    float imu_angular_vel_z = 0.0;
 
-    float imu_angular_x = 0;
-    float imu_angular_y = 0;
-    float imu_angular_z = 0;
+    float imu_angular_x = 0.0;
+    float imu_angular_y = 0.0;
+    float imu_angular_z = 0.0;
+
+    unsigned int lidar = 0;
 
     //package time stamp.
     unsigned long time_stamp_sensors = 0;
@@ -239,101 +245,134 @@ void StatusPublisher::STM32_Encoder_IMU_Parse(std::vector<unsigned char> data)
             speed_x_temp = (speed_x_temp << 8);
             speed_x_temp |= data[4];
             speed_x = (float)(speed_x_temp / 100.0);
-            car_status.velocity_y = speed_x;
-            
+            speed_x_check = (int)data[5];
+            std::cout << "x符号判断：" << (int)data[5] << std::endl;
 
+            if(speed_x_check == 1)
+            {
+                car_status.velocity_x = -speed_x;
+                std::cout <<  "x: " << car_status.velocity_x << std::endl;
+            }else
+            {
+                car_status.velocity_x = speed_x;
+                std::cout <<  "x: " << car_status.velocity_x << std::endl;
+            }
+            
             //parse Vy.
-            speed_y_temp |= data[5];
-            speed_y_temp = (speed_y_temp << 8);
             speed_y_temp |= data[6];
+            speed_y_temp = (speed_y_temp << 8);
+            speed_y_temp |= data[7];
             speed_y = (float)(speed_y_temp / 100.0);
-            car_status.velocity_x = -speed_y;
-            
+            speed_y_check = data[8];
+            std::cout << "y符号判断：" << (int)data[8] << std::endl;
+            if(speed_y_check == 1)
+            {
+                car_status.velocity_y = -speed_y;
+                std::cout <<  "y: " << car_status.velocity_y << std::endl;
+            }else
+            {
+                car_status.velocity_y = speed_y;
+                std::cout <<  "y: " << car_status.velocity_y << std::endl;
+            }
+                        
             //parse W.
-            angular_vel_temp |= data[7];
+            angular_vel_temp |= data[9];
             angular_vel_temp = (angular_vel_temp << 8);
-            angular_vel_temp |= data[8];
+            angular_vel_temp |= data[10];
             angular_vel = (float)(angular_vel_temp / 100.0);
-            car_status.angular_vel = angular_vel;
+            angular_vel_check = data[11];
+            // std::cout << "w符号判断：" << (int)data[11] << std::endl;
 
+            if(angular_vel_check == 1)
+            {
+                car_status.angular_vel = -angular_vel;
+            }
+            else{
+                car_status.angular_vel = angular_vel;
+            }
+            
             //parse IMU acc_x.
-            imu_acc_x_temp |= data[9];
+            imu_acc_x_temp |= data[12];
             imu_acc_x_temp = (imu_acc_x_temp << 8);
-            imu_acc_x_temp |= data[10];
+            imu_acc_x_temp |= data[13];
             imu_acc_x = (float)(imu_acc_x_temp / 100.0);
             car_status.IMU[0] = imu_acc_x;
 
             //parse IMU acc_y.
-            imu_acc_y_temp |= data[11];
+            imu_acc_y_temp |= data[14];
             imu_acc_y_temp = (imu_acc_y_temp << 8);
-            imu_acc_y_temp |= data[12];
+            imu_acc_y_temp |= data[15];
             imu_acc_y = (float)(imu_acc_y_temp / 100.0);
             car_status.IMU[1] = imu_acc_y;
 
             //parse IMU acc_z.
-            imu_acc_z_temp |= data[13];
+            imu_acc_z_temp |= data[16];
             imu_acc_z_temp = (imu_acc_z_temp << 8);
-            imu_acc_z_temp |= data[14];
+            imu_acc_z_temp |= data[17];
             imu_acc_z = (float)(imu_acc_z_temp / 100.0);
             car_status.IMU[2] = imu_acc_z;
 
             //parse IMU angular_vel_x.
-            imu_angular_vel_x_temp |= data[15];
+            imu_angular_vel_x_temp |= data[18];
             imu_angular_vel_x_temp = (imu_angular_vel_x_temp << 8);
-            imu_angular_vel_x_temp |= data[16];
+            imu_angular_vel_x_temp |= data[19];
             imu_angular_vel_x = (float)(imu_angular_vel_x_temp / 100.0);
             car_status.IMU[3] = imu_angular_vel_x;
 
             //parse IMU angular_vel_y.
-            imu_angular_vel_y_temp |= data[17];
+            imu_angular_vel_y_temp |= data[20];
             imu_angular_vel_y_temp = (imu_angular_vel_y_temp << 8);
-            imu_angular_vel_y_temp |= data[18];
+            imu_angular_vel_y_temp |= data[21];
             imu_angular_vel_y = (float)(imu_angular_vel_y_temp / 100.0);
             car_status.IMU[4] = imu_angular_vel_y;
 
             //parse IMU angular_vel_z.
-            imu_angular_vel_z_temp |= data[19];
+            imu_angular_vel_z_temp |= data[22];
             imu_angular_vel_z_temp = (imu_angular_vel_z_temp << 8);
-            imu_angular_vel_z_temp |= data[20];
+            imu_angular_vel_z_temp |= data[23];
             imu_angular_vel_z = (float)(imu_angular_vel_z_temp / 100.0);
             car_status.IMU[5] = imu_angular_vel_z;
 
             //parse IMU angular_x.
-            imu_angular_x_temp |= data[21];
+            imu_angular_x_temp |= data[24];
             imu_angular_x_temp = (imu_angular_x_temp << 8);
-            imu_angular_x_temp |= data[22];
+            imu_angular_x_temp |= data[25];
             imu_angular_x = (float)(imu_angular_x_temp / 100.0);
             car_status.IMU[6] = imu_angular_x;
 
             //parse angular_y.
-            imu_angular_y_temp |= data[23];
+            imu_angular_y_temp |= data[26];
             imu_angular_y_temp = (imu_angular_y_temp << 8);
-            imu_angular_y_temp |= data[24];
+            imu_angular_y_temp |= data[27];
             imu_angular_y = (float)(imu_angular_y_temp / 100.0);
             car_status.IMU[7] = imu_angular_y;
 
             //parse angular_z.
-            imu_angular_z_temp |= data[25];
+            imu_angular_z_temp |= data[28];
             imu_angular_z_temp = (imu_angular_z_temp << 8);
-            imu_angular_z_temp |= data[26];
+            imu_angular_z_temp |= data[29];
             imu_angular_z = (float)(imu_angular_z_temp / 100.0);
             car_status.IMU[8] = imu_angular_z;
 
+            //超声波状态返回.
+            
+            lidar = data[30];
+            
             //parse time stamp.
-            time_stamp_temp |= data[27];
+            time_stamp_temp |= data[31];
             time_stamp_temp = (time_stamp_temp << 24);
-            time_stamp_temp |= data[28];
+            time_stamp_temp |= data[32];
             time_stamp_temp = (time_stamp_temp << 16);
-            time_stamp_temp |= data[29];
+            time_stamp_temp |= data[33];
             time_stamp_temp = (time_stamp_temp << 8);
-            time_stamp_temp |= data[30];
+            time_stamp_temp |= data[34];
             time_stamp_sensors = (unsigned long)(time_stamp_temp);
             car_status.time_stamp = time_stamp_sensors;
             
-            std::cout << "speed_x:" << car_status.velocity_x << std::endl;
-            std::cout << "speed_y:" << car_status.velocity_y << std::endl;
-            std::cout << "angular_vel:" << angular_vel << std::endl
-                      << std::endl;
+            // std::cout << "speed_x:" << car_status.velocity_x << std::endl;
+            // std::cout << "speed_y:" << car_status.velocity_y << std::endl;
+            // std::cout << "angular_vel:" << angular_vel << std::endl
+            //           << std::endl;
             // std::cout << "imu_acc_x:" << imu_acc_x << std::endl;
             // std::cout << "imu_acc_y:" << imu_acc_y << std::endl;
             // std::cout << "imu_acc_z:" << imu_acc_z << std::endl
@@ -377,7 +416,7 @@ void StatusPublisher::Refresh()
 {
     boost::mutex::scoped_lock lock(mMutex);
     static double theta_last = 0.0;
-    static unsigned long time_stamp_last = 0;
+    static unsigned long time_stamp_last;
     static unsigned int ii = 0;
     static bool theta_updateflag = false;
     ii++;
@@ -426,18 +465,24 @@ void StatusPublisher::Refresh()
         var_len = (50.0f / car_status.encoder_ppr * 2.0f * PI * wheel_radius) * (50.0f / car_status.encoder_ppr * 2.0f * PI * wheel_radius);
 
         delta_time = car_status.time_stamp - time_stamp_last;
+        
+        time_stamp_last = car_status.time_stamp;
+        // ROS_INFO("delta time:[%d]", (int)delta_time);
+        // ROS_INFO("time_stamp_last:[%d]", (int)time_stamp_last);
 
-        if (delta_time < 0)
+        if (delta_time < 0 || delta_time > 500)
         {
             return;
         }
 
         delta_x = car_status.velocity_x * delta_time / 1000;
         delta_y = car_status.velocity_y * delta_time / 1000;
+
         delta_theta = car_status.IMU[8] - theta_last;
 
         theta_last = car_status.IMU[8];
-        time_stamp_last = car_status.time_stamp;
+        
+        // ROS_INFO("time_stamp_last:[%d]", (int)time_stamp_last);
 
         if (delta_theta > 270)
             delta_theta -= 360;
@@ -467,6 +512,7 @@ void StatusPublisher::Refresh()
         //Twist
         double angle_speed;
         CarTwist.linear.x = car_status.velocity_x;
+        CarTwist.linear.y = car_status.velocity_y;
 
         // the robot and the IMU are the same coord.
         // angle_speed = car_status.IMU[5];
@@ -483,7 +529,9 @@ void StatusPublisher::Refresh()
         CarOdom.pose.pose.position.x = CarPos2D.x;
         CarOdom.pose.pose.position.y = CarPos2D.y;
         CarOdom.pose.pose.position.z = 0.0f;
-        geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(CarPos2D.theta);
+
+        // geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(CarPos2D.theta);
+        geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(0.0);
         CarOdom.pose.pose.orientation = odom_quat;
         CarOdom.pose.covariance = boost::assign::list_of(var_len)(0)(0)(0)(0)(0)(0)(var_len)(0)(0)(0)(0)(0)(0)(999)(0)(0)(0)(0)(0)(0)(999)(0)(0)(0)(0)(0)(0)(999)(0)(0)(0)(0)(0)(0)(var_angle);
         CarOdom.child_frame_id = "base_footprint";
@@ -495,6 +543,9 @@ void StatusPublisher::Refresh()
         CarOdom.twist.covariance = boost::assign::list_of(var_len)(0)(0)(0)(0)(0)(0)(var_len)(0)(0)(0)(0)(0)(0)(999)(0)(0)(0)(0)(0)(0)(999)(0)(0)(0)(0)(0)(0)(999)(0)(0)(0)(0)(0)(0)(var_angle);
         mOdomPub.publish(CarOdom);
 
+        std::cout << "Odom: Sx" << CarOdom.pose.pose.position.x << "Sy: " << CarOdom.pose.pose.position.y << "Vx: "
+                <<  CarOdom.twist.twist.linear.x << "Vy: " <<  CarOdom.twist.twist.linear.y << "Vz: " << CarOdom.twist.twist.angular.z << std::endl;
+                
         // pub transform
         static tf::TransformBroadcaster br;
         tf::Quaternion q;

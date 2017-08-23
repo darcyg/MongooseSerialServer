@@ -211,8 +211,9 @@ void DiffDriverController::sendcmd(const geometry_msgs::Twist &command)
     // speed_lin_y = command.linear.y / (2.0 * PI * radius);
     // speed_ang = command.angular.z * separation / (2.0 * PI * radius);
 
-    speed_lin_x = command.linear.x;
-    speed_lin_y = command.linear.y;
+    //坐标系转换，将move_base的坐标系转成小车的坐标系。
+    speed_lin_y = command.linear.x;
+    speed_lin_x = -command.linear.y;
     speed_ang = command.angular.z;
 
     //Get theta value.
@@ -227,6 +228,7 @@ void DiffDriverController::sendcmd(const geometry_msgs::Twist &command)
     double speedValue = sqrt(speed[0] * speed[0] + speed[1] * speed[1]) * 100;
     // ROS_INFO("speed:[%d]", speedValue);
 
+    //确定数据在哪个相限。
     if (speed[0] == 0 || speed[1] == 0)
     {
         if (speed[0] == 0)
@@ -264,7 +266,8 @@ void DiffDriverController::sendcmd(const geometry_msgs::Twist &command)
             anglar = atan(speed[1] / speed[0]) * 100 + 314;
         }
     }
-    //put stop and run data.
+
+    //put stop and velocity cmd.
     if (speedValue == 0 && anglar == 0)
     {
         stop_cmd = true;
