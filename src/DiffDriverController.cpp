@@ -189,8 +189,7 @@ void DiffDriverController::sendcmd(const geometry_msgs::Twist &command)
     int crc_length = 0;
     int crc = 0;
     bool stop_cmd = false;
-    double separation = 0, radius = 0, speed_lin_x = 0, speed_lin_y = 0, speed_temp[2];
-    double speed_ang = 0;
+    double separation = 0, radius = 0, speed_lin_x = 0, speed_lin_y = 0, speed_temp[2], speed_ang = 0;
     // char speed[2]={0,0};//右一左二
     // char speed[1] = {0};
     char cmd_str[9] = {0xFF, 0x02, 0x04, 0x14, 0x00, 0x9D, 0x00, 0x70, 0xED};
@@ -214,7 +213,9 @@ void DiffDriverController::sendcmd(const geometry_msgs::Twist &command)
     //坐标系转换，将move_base的坐标系转成小车的坐标系。
     speed_lin_y = command.linear.x;
     speed_lin_x = -command.linear.y;
-    speed_ang = command.angular.z;
+    // speed_ang = command.angular.z;
+    //先不考虑转向的问题。
+    speed_ang = 0;
 
     //Get theta value.
     double speed[3] = {speed_lin_x, speed_lin_y, speed_ang};
@@ -349,112 +350,5 @@ void DiffDriverController::sendcmd(const geometry_msgs::Twist &command)
             cmd_serial->write(cmd_str, 9);
         }
     }
-}
-
-void DiffDriverController::sendcmdTest(const geometry_msgs::Twist &command)
-{
-    static time_t t1 = time(NULL), t2;
-    int i = 0, wheel_ppr = 1;
-    double separation = 0, radius = 0, speed_lin = 0, speed_ang = 0, speed_temp[2];
-    char speed[2] = {0, 0}; //右一左二
-    char cmd_str[13] = {0xcd, 0xeb, 0xd7, 0x09, 0x74, 0x53, 0x53, 0x53, 0x53, 0x00, 0x00, 0x00, 0x00};
-
-    ROS_INFO("Run in this line:[%d]", __LINE__);
-
-    if (xq_status->get_status() == 0)
-        return; //底层还在初始化
-    separation = xq_status->get_wheel_separation();
-    radius = xq_status->get_wheel_radius();
-    wheel_ppr = xq_status->get_wheel_ppr();
-
-    //转换速度单位，由米转换成转
-    speed_lin = command.linear.x / (2.0 * PI * radius);
-    speed_ang = command.angular.z * separation / (2.0 * PI * radius);
-
-    float scale = std::max(std::abs(speed_lin + speed_ang / 2.0), std::abs(speed_lin - speed_ang / 2.0)) / max_wheelspeed;
-    if (scale > 1.0)
-    {
-        scale = 1.0 / scale;
-    }
-    else
-    {
-        scale = 1.0;
-    }
-    //转出最大速度百分比,并进行限幅
-    speed_temp[0] = scale * (speed_lin + speed_ang / 2) / max_wheelspeed * 100.0;
-    speed_temp[0] = std::min(speed_temp[0], 100.0);
-    speed_temp[0] = std::max(-100.0, speed_temp[0]);
-
-    speed_temp[1] = scale * (speed_lin - speed_ang / 2) / max_wheelspeed * 100.0;
-    speed_temp[1] = std::min(speed_temp[1], 100.0);
-    speed_temp[1] = std::max(-100.0, speed_temp[1]);
-
-    //std::cout<<"radius "<<radius<<std::endl;
-    //std::cout<<"ppr "<<wheel_ppr<<std::endl;
-    //std::cout<<"pwm "<<speed_temp[0]<<std::endl;
-    //  command.linear.x/
-    for (i = 0; i < 2; i++)
-    {
-        speed[i] = speed_temp[i];
-        if (speed[i] < 0)
-        {
-            cmd_str[5 + i] = 0x42; //B
-            cmd_str[9 + i] = -speed[i];
-        }
-        else if (speed[i] > 0)
-        {
-            cmd_str[5 + i] = 0x46; //F
-            cmd_str[9 + i] = speed[i];
-        }
-        else
-        {
-            cmd_str[5 + i] = 0x53; //S
-            cmd_str[9 + i] = 0x00;
-        }
-    }
-
-    // std::cout<<"distance1 "<<xq_status->car_status.distance1<<std::endl;
-    // std::cout<<"distance2 "<<xq_status->car_status.distance2<<std::endl;
-    // std::cout<<"distance3 "<<xq_status->car_status.distance3<<std::endl;
-    // if(xq_status->get_status()==2)
-    // {
-    //   //有障碍物
-    //   if(xq_status->car_status.distance1<30&&xq_status->car_status.distance1>0&&cmd_str[6]==0x46)
-    //   {
-    //     cmd_str[6]=0x53;
-    //   }
-    //   if(xq_status->car_status.distance2<30&&xq_status->car_status.distance2>0&&cmd_str[5]==0x46)
-    //   {
-    //     cmd_str[5]=0x53;
-    //   }
-    //   if(xq_status->car_status.distance3<20&&xq_status->car_status.distance3>0&&(cmd_str[5]==0x42||cmd_str[6]==0x42))
-    //   {
-    //     cmd_str[5]=0x53;
-    //     cmd_str[6]=0x53;
-    //   }
-    //   if(xq_status->car_status.distance1<15&&xq_status->car_status.distance1>0&&(cmd_str[5]==0x46||cmd_str[6]==0x46))
-    //   {
-    //     cmd_str[5]=0x53;
-    //     cmd_str[6]=0x53;
-    //   }
-    //   if(xq_status->car_status.distance2<15&&xq_status->car_status.distance2>0&&(cmd_str[5]==0x46||cmd_str[6]==0x46))
-    //   {
-    //     cmd_str[5]=0x53;
-    //     cmd_str[6]=0x53;
-    //   }
-    // }
-
-    boost::mutex::scoped_lock lock(mMutex);
-    if (!MoveFlag)
-    {
-        cmd_str[5] = 0x53;
-        cmd_str[6] = 0x53;
-    }
-    if (NULL != cmd_serial)
-    {
-        cmd_serial->write(cmd_str, 13);
-    }
-
-    // command.linear.x
 }
 }

@@ -112,7 +112,6 @@ void StatusPublisher::Update(const char data[], unsigned int len)
         //判断是否有新包头
         if (last_str[0] == PACKAGE_END && last_str[1] == PACKAGE_BEGIN && current_str == COMMOND_BIT) //包头 205 235 215
         {
-            //            std::cout<<"runup1 "<<std::endl;
             new_packed_ctr = ENABLE;
             new_packed_ok_len = 0;
             new_packed_len = new_packed_ok_len;
@@ -130,18 +129,13 @@ void StatusPublisher::Update(const char data[], unsigned int len)
             if (new_packed_ok_len > cmd_string_max_size)
                 new_packed_ok_len = cmd_string_max_size; //包内容最大长度有限制
 
-            //            std::cout<<"runup2 "<< new_packed_len<< new_packed_ok_len<<std::endl;
         }
         if (last_data[0] = PACKAGE_END && current_str == PACKAGE_BEGIN)
         {
-            //            std::cout << "start to parse data: " << std::endl;
             start_parse = true;
             receive_data_size = 0;
         }
-        //        last_data[0] = last_data[1];
         last_data[0] = current_str;
-
-        // std::cout << "This line:" << __LINE__ << std::endl;
 
         if (start_parse)
         {
@@ -215,7 +209,7 @@ void StatusPublisher::STM32_Encoder_IMU_Parse(std::vector<unsigned char> data)
     float imu_angular_y = 0.0;
     float imu_angular_z = 0.0;
 
-    unsigned int lidar = 0;
+    unsigned int obstacle_state = 0;
 
     //package time stamp.
     unsigned long time_stamp_sensors = 0;
@@ -246,16 +240,16 @@ void StatusPublisher::STM32_Encoder_IMU_Parse(std::vector<unsigned char> data)
             speed_x_temp |= data[4];
             speed_x = (float)(speed_x_temp / 100.0);
             speed_x_check = (int)data[5];
-            std::cout << "x符号判断：" << (int)data[5] << std::endl;
+            // std::cout << "x符号判断：" << (int)data[5] << std::endl;
 
             if(speed_x_check == 1)
             {
                 car_status.velocity_x = -speed_x;
-                std::cout <<  "x: " << car_status.velocity_x << std::endl;
+                // std::cout <<  "x: " << car_status.velocity_x << std::endl;
             }else
             {
                 car_status.velocity_x = speed_x;
-                std::cout <<  "x: " << car_status.velocity_x << std::endl;
+                // std::cout <<  "x: " << car_status.velocity_x << std::endl;
             }
             
             //parse Vy.
@@ -264,15 +258,15 @@ void StatusPublisher::STM32_Encoder_IMU_Parse(std::vector<unsigned char> data)
             speed_y_temp |= data[7];
             speed_y = (float)(speed_y_temp / 100.0);
             speed_y_check = data[8];
-            std::cout << "y符号判断：" << (int)data[8] << std::endl;
+            // std::cout << "y符号判断：" << (int)data[8] << std::endl;
             if(speed_y_check == 1)
             {
                 car_status.velocity_y = -speed_y;
-                std::cout <<  "y: " << car_status.velocity_y << std::endl;
+                // std::cout <<  "y: " << car_status.velocity_y << std::endl;
             }else
             {
                 car_status.velocity_y = speed_y;
-                std::cout <<  "y: " << car_status.velocity_y << std::endl;
+                // std::cout <<  "y: " << car_status.velocity_y << std::endl;
             }
                         
             //parse W.
@@ -285,7 +279,7 @@ void StatusPublisher::STM32_Encoder_IMU_Parse(std::vector<unsigned char> data)
 
             if(angular_vel_check == 1)
             {
-                car_status.angular_vel = -angular_vel;
+                car_status.angular_vel = angular_vel;
             }
             else{
                 car_status.angular_vel = angular_vel;
@@ -355,8 +349,16 @@ void StatusPublisher::STM32_Encoder_IMU_Parse(std::vector<unsigned char> data)
             car_status.IMU[8] = imu_angular_z;
 
             //超声波状态返回.
-            
-            lidar = data[30];
+            //1 表示有障碍物，0表示没有障碍物。
+            obstacle_state = (unsigned int)data[30];
+            if(obstacle_state == 1)
+            {
+                car_status.m_obstacle_state = obstacle_state;
+                // std::cout << "obstacle state:" << car_status.m_obstacle_state << std::endl;
+            }else
+            {
+                // car_status.m_obstacle_state = obstacle_state;
+            }
             
             //parse time stamp.
             time_stamp_temp |= data[31];
@@ -517,7 +519,8 @@ void StatusPublisher::Refresh()
         // the robot and the IMU are the same coord.
         // angle_speed = car_status.IMU[5];
         // CarTwist.angular.z = angle_speed;
-        CarTwist.angular.z = car_status.angular_vel;
+        CarTwist.angular.z = 0.0f;
+        // std::cout << "angular z check:" << CarTwist.angular.z << std::endl;
         mTwistPub.publish(CarTwist);
 
         //not used for this version.
@@ -543,8 +546,8 @@ void StatusPublisher::Refresh()
         CarOdom.twist.covariance = boost::assign::list_of(var_len)(0)(0)(0)(0)(0)(0)(var_len)(0)(0)(0)(0)(0)(0)(999)(0)(0)(0)(0)(0)(0)(999)(0)(0)(0)(0)(0)(0)(999)(0)(0)(0)(0)(0)(0)(var_angle);
         mOdomPub.publish(CarOdom);
 
-        std::cout << "Odom: Sx" << CarOdom.pose.pose.position.x << "Sy: " << CarOdom.pose.pose.position.y << "Vx: "
-                <<  CarOdom.twist.twist.linear.x << "Vy: " <<  CarOdom.twist.twist.linear.y << "Vz: " << CarOdom.twist.twist.angular.z << std::endl;
+        // std::cout << "Odom: Sx" << CarOdom.pose.pose.position.x << "Sy: " << CarOdom.pose.pose.position.y << "Vx: "
+        //         <<  CarOdom.twist.twist.linear.x << "Vy: " <<  CarOdom.twist.twist.linear.y << "Vz: " << CarOdom.twist.twist.angular.z << std::endl;
                 
         // pub transform
         static tf::TransformBroadcaster br;

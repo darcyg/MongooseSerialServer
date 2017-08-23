@@ -38,6 +38,8 @@ typedef struct {
     float velocity_y;
     float angular_vel;
 
+    unsigned int m_obstacle_state;
+
     float distance1;//第一个超声模块距离值 单位cm
     float distance2;//第二个超声模块距离值 单位cm
     float distance3;//第三个超声模块距离值 单位cm
