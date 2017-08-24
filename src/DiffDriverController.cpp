@@ -213,22 +213,27 @@ void DiffDriverController::sendcmd(const geometry_msgs::Twist &command)
     //坐标系转换，将move_base的坐标系转成小车的坐标系。
     speed_lin_y = command.linear.x;
     speed_lin_x = -command.linear.y;
-    // speed_ang = command.angular.z;
+    speed_ang = command.angular.z;
+    // std::cout << "cmmond angular z:" << command.angular.z << std::endl;
+    // std::cout << "speed_ang angular z:" << speed_ang << std::endl;
+
     //先不考虑转向的问题。
-    speed_ang = 0;
+    // speed_ang = 0;
 
     //Get theta value.
     double speed[3] = {speed_lin_x, speed_lin_y, speed_ang};
     uint32_t anglar;
 
-    // std::cout << "x velocity:" << command.linear.x << std::endl;
-    // std::cout << "y velocity:" << command.linear.y << std::endl;
-    // std::cout << "angular velocity:" << command.angular.z << std::endl;
+    ROS_INFO("x velocity:[%f]", command.linear.x);
+    ROS_INFO("y velocity:[%f]", command.linear.y);
+    ROS_INFO("z angular vel:[%f]", command.angular.z);
     // ROS_INFO("linear velocity:[%d]", (float)command.linear.x);
 
     double speedValue = sqrt(speed[0] * speed[0] + speed[1] * speed[1]) * 100;
     // ROS_INFO("speed:[%d]", speedValue);
 
+    std::cout << "X vel in AGV:" << speed[0] << std::endl;
+    
     //确定数据在哪个相限。
     if (speed[0] == 0 || speed[1] == 0)
     {
@@ -245,7 +250,7 @@ void DiffDriverController::sendcmd(const geometry_msgs::Twist &command)
             if (speed[0] >= 0)
                 anglar = 0;
             else
-                anglar = 628;
+                anglar = 314;
         }
     }
     else
@@ -269,12 +274,14 @@ void DiffDriverController::sendcmd(const geometry_msgs::Twist &command)
     }
 
     //put stop and velocity cmd.
-    if (speedValue == 0 && anglar == 0)
+    if (speedValue == 0 && anglar == 0 && speed_ang == 0)
     {
         stop_cmd = true;
     }
     else
     {
+        std::cout << "This line:" << __LINE__ << std::endl;
+
         //put processed value to cmd_str.
         cmd_str[3] = speedValue;
 
@@ -285,7 +292,8 @@ void DiffDriverController::sendcmd(const geometry_msgs::Twist &command)
 
         cmd_str[5] = temp_byte;
 
-        cmd_str[6] = (speed_ang * 100);
+        cmd_str[6] = (speed[2] * 100);
+        std::cout << "angular vel:" << speed[2] << std::endl;
 
         crc_length = (INFORMATION_LENGTH - 2);
         for (i = 0; i < crc_length; ++i)
@@ -344,10 +352,12 @@ void DiffDriverController::sendcmd(const geometry_msgs::Twist &command)
         if (stop_cmd)
         {
             cmd_serial->write(stop_str, 5);
+            std::cout << "Send stop vel:" << __LINE__ << std::endl;
         }
         else
         {
             cmd_serial->write(cmd_str, 9);
+            std::cout << "Send vel:" << __LINE__ << std::endl;
         }
     }
 }
