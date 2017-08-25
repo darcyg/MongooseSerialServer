@@ -8,6 +8,7 @@
 #define ENABLE 1
 
 //serial package data.
+//串口协议参数定义
 #define PACKAGE_BEGIN 255
 #define COMMOND_BIT 249
 #define PACKAGE_END 237
@@ -145,15 +146,19 @@ void StatusPublisher::Update(const char data[], unsigned int len)
                 STM32_Encoder_IMU_Parse(vdataBuffer);
                 mbUpdated = true;
                 start_parse = false;
-                // for (int j = 0; j < PACKAGE_LEN; ++j)
-                // {
-                //     std::cout << "data:" << (int)vdataBuffer[j] << std::endl;
-                // }
+                for (int j = 0; j < PACKAGE_LEN; ++j)
+                {
+                    std::cout << "data:" << (int)vdataBuffer[j] << std::endl;
+                    //输出异常值
+                    // if((int)vdataBuffer[3] !=0 || (int)vdataBuffer[4] !=0)
+                    // {
+                    //     std::cout << "origin vel:" << (int)vdataBuffer[3] << " " << (int)vdataBuffer[4] << std::endl;
+                    // }
+                }
                 vdataBuffer.clear();
             }
         }
     }
-
     return;
 }
 
@@ -259,6 +264,8 @@ void StatusPublisher::STM32_Encoder_IMU_Parse(std::vector<unsigned char> data)
             speed_y = (float)(speed_y_temp / 100.0);
             speed_y_check = data[8];
             // std::cout << "y符号判断：" << (int)data[8] << std::endl;
+            
+            //小车速度方向判断和到move_base的坐标系转换。
             if(speed_y_check == 1)
             {
                 car_status.velocity_y = -speed_y;
@@ -472,13 +479,15 @@ void StatusPublisher::Refresh()
         // ROS_INFO("delta time:[%d]", (int)delta_time);
         // ROS_INFO("time_stamp_last:[%d]", (int)time_stamp_last);
 
-        if (delta_time < 0 || delta_time > 500)
+        //删除过大时间以及x，y方向的异常速度。
+        if (delta_time < 0 || delta_time > 500 || car_status.velocity_x > 0.7 || car_status.velocity_x < -0.7 || car_status.velocity_y > 0.7 || car_status.velocity_y < -0.7)
         {
             return;
         }
 
         delta_x = car_status.velocity_x * delta_time / 1000;
         delta_y = car_status.velocity_y * delta_time / 1000;
+
 
         delta_theta = car_status.IMU[8] - theta_last;
 
