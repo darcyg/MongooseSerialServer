@@ -46,6 +46,8 @@ typedef struct {
     float distance4;//第四个超声模块距离值 单位cm
     float IMU[9];//mpu9250 9轴数据
     unsigned int time_stamp;//时间戳
+    float gyro;
+    
 }UPLOAD_STATUS;
 
 class StatusPublisher

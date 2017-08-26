@@ -12,8 +12,8 @@
 #define PACKAGE_BEGIN 255
 #define COMMOND_BIT 249
 #define PACKAGE_END 237
-#define PACKAGE_LEN 37
-#define CRC_BIT 35
+#define PACKAGE_LEN 50
+#define CRC_BIT 48
 #define Pi 3.1415926
 
 namespace xqserial_server
@@ -129,7 +129,6 @@ void StatusPublisher::Update(const char data[], unsigned int len)
             new_packed_ok_len = current_str;
             if (new_packed_ok_len > cmd_string_max_size)
                 new_packed_ok_len = cmd_string_max_size; //包内容最大长度有限制
-
         }
         if (last_data[0] = PACKAGE_END && current_str == PACKAGE_BEGIN)
         {
@@ -146,15 +145,15 @@ void StatusPublisher::Update(const char data[], unsigned int len)
                 STM32_Encoder_IMU_Parse(vdataBuffer);
                 mbUpdated = true;
                 start_parse = false;
-                for (int j = 0; j < PACKAGE_LEN; ++j)
-                {
-                    std::cout << "data:" << (int)vdataBuffer[j] << std::endl;
-                    //输出异常值
-                    // if((int)vdataBuffer[3] !=0 || (int)vdataBuffer[4] !=0)
-                    // {
-                    //     std::cout << "origin vel:" << (int)vdataBuffer[3] << " " << (int)vdataBuffer[4] << std::endl;
-                    // }
-                }
+                // for (int j = 0; j < PACKAGE_LEN; ++j)
+                // {
+                //     std::cout << "data:" << (int)vdataBuffer[j] << std::endl;
+                //     //输出异常值
+                //     // if((int)vdataBuffer[3] !=0 || (int)vdataBuffer[4] !=0)
+                //     // {
+                //     //     std::cout << "origin vel:" << (int)vdataBuffer[3] << " " << (int)vdataBuffer[4] << std::endl;
+                //     // }
+                // }
                 vdataBuffer.clear();
             }
         }
@@ -191,6 +190,10 @@ void StatusPublisher::STM32_Encoder_IMU_Parse(std::vector<unsigned char> data)
 
     //package time stamp.
     unsigned long long time_stamp_temp = 0;
+
+    //Gryo data.
+    unsigned long gyro_data = 0;
+    int gyro_state = 0;
 
     //from encoder.
     float speed_x = 0.0;
@@ -247,16 +250,17 @@ void StatusPublisher::STM32_Encoder_IMU_Parse(std::vector<unsigned char> data)
             speed_x_check = (int)data[5];
             // std::cout << "x符号判断：" << (int)data[5] << std::endl;
 
-            if(speed_x_check == 1)
+            if (speed_x_check == 1)
             {
                 car_status.velocity_x = -speed_x;
                 // std::cout <<  "x: " << car_status.velocity_x << std::endl;
-            }else
+            }
+            else
             {
                 car_status.velocity_x = speed_x;
                 // std::cout <<  "x: " << car_status.velocity_x << std::endl;
             }
-            
+
             //parse Vy.
             speed_y_temp |= data[6];
             speed_y_temp = (speed_y_temp << 8);
@@ -264,18 +268,19 @@ void StatusPublisher::STM32_Encoder_IMU_Parse(std::vector<unsigned char> data)
             speed_y = (float)(speed_y_temp / 100.0);
             speed_y_check = data[8];
             // std::cout << "y符号判断：" << (int)data[8] << std::endl;
-            
+
             //小车速度方向判断和到move_base的坐标系转换。
-            if(speed_y_check == 1)
+            if (speed_y_check == 1)
             {
                 car_status.velocity_y = -speed_y;
                 // std::cout <<  "y: " << car_status.velocity_y << std::endl;
-            }else
+            }
+            else
             {
                 car_status.velocity_y = speed_y;
                 // std::cout <<  "y: " << car_status.velocity_y << std::endl;
             }
-                        
+
             //parse W.
             angular_vel_temp |= data[9];
             angular_vel_temp = (angular_vel_temp << 8);
@@ -284,14 +289,15 @@ void StatusPublisher::STM32_Encoder_IMU_Parse(std::vector<unsigned char> data)
             angular_vel_check = data[11];
             // std::cout << "w符号判断：" << (int)data[11] << std::endl;
 
-            if(angular_vel_check == 1)
+            if (angular_vel_check == 1)
             {
                 car_status.angular_vel = angular_vel;
             }
-            else{
+            else
+            {
                 car_status.angular_vel = angular_vel;
             }
-            
+
             //parse IMU acc_x.
             imu_acc_x_temp |= data[12];
             imu_acc_x_temp = (imu_acc_x_temp << 8);
@@ -358,15 +364,16 @@ void StatusPublisher::STM32_Encoder_IMU_Parse(std::vector<unsigned char> data)
             //超声波状态返回.
             //1 表示有障碍物，0表示没有障碍物。
             obstacle_state = (unsigned int)data[30];
-            if(obstacle_state == 1)
+            if (obstacle_state == 1)
             {
                 car_status.m_obstacle_state = obstacle_state;
                 // std::cout << "obstacle state:" << car_status.m_obstacle_state << std::endl;
-            }else
+            }
+            else
             {
                 // car_status.m_obstacle_state = obstacle_state;
             }
-            
+
             //parse time stamp.
             time_stamp_temp |= data[31];
             time_stamp_temp = (time_stamp_temp << 24);
@@ -377,7 +384,24 @@ void StatusPublisher::STM32_Encoder_IMU_Parse(std::vector<unsigned char> data)
             time_stamp_temp |= data[34];
             time_stamp_sensors = (unsigned long)(time_stamp_temp);
             car_status.time_stamp = time_stamp_sensors;
-            
+
+            //parse gyro data.
+            gyro_data |= data[35];
+            gyro_data = (gyro_data << 8);
+            gyro_data |= data[36];
+            gyro_state = data[37];
+
+            if (gyro_state == 0)
+            {
+                car_status.gyro = gyro_data / 100;
+                // std::cout << "gyro data:" << car_status.gyro << std::endl;
+            }
+            else
+            {
+                car_status.gyro = -((float)gyro_data / 100);
+                // std::cout << "gyro data:" << car_status.gyro << std::endl;
+            }
+
             // std::cout << "speed_x:" << car_status.velocity_x << std::endl;
             // std::cout << "speed_y:" << car_status.velocity_y << std::endl;
             // std::cout << "angular_vel:" << angular_vel << std::endl
@@ -474,7 +498,7 @@ void StatusPublisher::Refresh()
         var_len = (50.0f / car_status.encoder_ppr * 2.0f * PI * wheel_radius) * (50.0f / car_status.encoder_ppr * 2.0f * PI * wheel_radius);
 
         delta_time = car_status.time_stamp - time_stamp_last;
-        
+
         time_stamp_last = car_status.time_stamp;
         // ROS_INFO("delta time:[%d]", (int)delta_time);
         // ROS_INFO("time_stamp_last:[%d]", (int)time_stamp_last);
@@ -488,11 +512,10 @@ void StatusPublisher::Refresh()
         delta_x = car_status.velocity_x * delta_time / 1000;
         delta_y = car_status.velocity_y * delta_time / 1000;
 
+        delta_theta = car_status.gyro - theta_last;
 
-        delta_theta = car_status.IMU[8] - theta_last;
+        theta_last = car_status.gyro;
 
-        theta_last = car_status.IMU[8];
-        
         // ROS_INFO("time_stamp_last:[%d]", (int)time_stamp_last);
 
         if (delta_theta > 270)
@@ -542,8 +565,8 @@ void StatusPublisher::Refresh()
         CarOdom.pose.pose.position.y = CarPos2D.y;
         CarOdom.pose.pose.position.z = 0.0f;
 
-        // geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(CarPos2D.theta);
-        geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(0.0);
+        geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(CarPos2D.theta);
+        // geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(0.0);
         CarOdom.pose.pose.orientation = odom_quat;
         CarOdom.pose.covariance = boost::assign::list_of(var_len)(0)(0)(0)(0)(0)(0)(var_len)(0)(0)(0)(0)(0)(0)(999)(0)(0)(0)(0)(0)(0)(999)(0)(0)(0)(0)(0)(0)(999)(0)(0)(0)(0)(0)(0)(var_angle);
         CarOdom.child_frame_id = "base_footprint";
@@ -557,7 +580,7 @@ void StatusPublisher::Refresh()
 
         // std::cout << "Odom: Sx" << CarOdom.pose.pose.position.x << "Sy: " << CarOdom.pose.pose.position.y << "Vx: "
         //         <<  CarOdom.twist.twist.linear.x << "Vy: " <<  CarOdom.twist.twist.linear.y << "Vz: " << CarOdom.twist.twist.angular.z << std::endl;
-                
+
         // pub transform
         static tf::TransformBroadcaster br;
         tf::Quaternion q;
