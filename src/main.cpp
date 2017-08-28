@@ -20,7 +20,7 @@ int main(int argc, char **argv)
 
     //获取串口参数
     std::string port;
-    ros::param::param<std::string>("~port", port, "/dev/ttyUSB0");
+    ros::param::param<std::string>("~port", port, "/dev/ttyUSB1");
     int baud;
     ros::param::param<int>("~baud", baud, 115200);
     cout<<"port:"<<port<<" baud:"<<baud<<endl;

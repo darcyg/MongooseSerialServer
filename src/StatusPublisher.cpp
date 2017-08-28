@@ -145,15 +145,17 @@ void StatusPublisher::Update(const char data[], unsigned int len)
                 STM32_Encoder_IMU_Parse(vdataBuffer);
                 mbUpdated = true;
                 start_parse = false;
-                // for (int j = 0; j < PACKAGE_LEN; ++j)
-                // {
-                //     std::cout << "data:" << (int)vdataBuffer[j] << std::endl;
-                //     //输出异常值
-                //     // if((int)vdataBuffer[3] !=0 || (int)vdataBuffer[4] !=0)
-                //     // {
-                //     //     std::cout << "origin vel:" << (int)vdataBuffer[3] << " " << (int)vdataBuffer[4] << std::endl;
-                //     // }
-                // }
+
+                //Raw data from serial.
+                for (int j = 0; j < PACKAGE_LEN; ++j)
+                {
+                    std::cout << "data:" << (int)vdataBuffer[j] << std::endl;
+                    //输出异常值
+                    // if((int)vdataBuffer[3] !=0 || (int)vdataBuffer[4] !=0)
+                    // {
+                    //     std::cout << "origin vel:" << (int)vdataBuffer[3] << " " << (int)vdataBuffer[4] << std::endl;
+                    // }
+                }
                 vdataBuffer.clear();
             }
         }
@@ -291,7 +293,7 @@ void StatusPublisher::STM32_Encoder_IMU_Parse(std::vector<unsigned char> data)
 
             if (angular_vel_check == 1)
             {
-                car_status.angular_vel = angular_vel;
+                car_status.angular_vel = -angular_vel;
             }
             else
             {
@@ -504,7 +506,8 @@ void StatusPublisher::Refresh()
         // ROS_INFO("time_stamp_last:[%d]", (int)time_stamp_last);
 
         //删除过大时间以及x，y方向的异常速度。
-        if (delta_time < 0 || delta_time > 500 || car_status.velocity_x > 0.7 || car_status.velocity_x < -0.7 || car_status.velocity_y > 0.7 || car_status.velocity_y < -0.7)
+        if (delta_time < 0 || delta_time > 500 || car_status.velocity_x > 0.7 || car_status.velocity_x < -0.7 || car_status.velocity_y > 0.7
+          || car_status.velocity_y < -0.7)
         {
             return;
         }
@@ -550,8 +553,11 @@ void StatusPublisher::Refresh()
 
         // the robot and the IMU are the same coord.
         // angle_speed = car_status.IMU[5];
-        // CarTwist.angular.z = angle_speed;
-        CarTwist.angular.z = 0.0f;
+        angle_speed = car_status.angular_vel;
+        std::cout << "angular vel from Encoder:" << angle_speed << std::endl;
+
+        CarTwist.angular.z = angle_speed;
+        // CarTwist.angular.z = 0.0f;
         // std::cout << "angular z check:" << CarTwist.angular.z << std::endl;
         mTwistPub.publish(CarTwist);
 
@@ -575,11 +581,14 @@ void StatusPublisher::Refresh()
         CarOdom.twist.twist.linear.x = CarTwist.linear.x;
         CarOdom.twist.twist.linear.y = CarTwist.linear.y; // * sin(CarPos2D.theta* PI / 180.0f);
         CarOdom.twist.twist.angular.z = CarTwist.angular.z;
+        // std::cout << "angular vel:" << CarOdom.twist.twist.angular.z << std::endl;
+
         CarOdom.twist.covariance = boost::assign::list_of(var_len)(0)(0)(0)(0)(0)(0)(var_len)(0)(0)(0)(0)(0)(0)(999)(0)(0)(0)(0)(0)(0)(999)(0)(0)(0)(0)(0)(0)(999)(0)(0)(0)(0)(0)(0)(var_angle);
         mOdomPub.publish(CarOdom);
 
-        // std::cout << "Odom: Sx" << CarOdom.pose.pose.position.x << "Sy: " << CarOdom.pose.pose.position.y << "Vx: "
-        //         <<  CarOdom.twist.twist.linear.x << "Vy: " <<  CarOdom.twist.twist.linear.y << "Vz: " << CarOdom.twist.twist.angular.z << std::endl;
+        //Use this to make sure all odom data are right.
+        std::cout << "Odom: Sx" << CarOdom.pose.pose.position.x << "Sy: " << CarOdom.pose.pose.position.y << "Vx: "
+                <<  CarOdom.twist.twist.linear.x << "Vy: " <<  CarOdom.twist.twist.linear.y << "Vz: " << CarOdom.twist.twist.angular.z << std::endl;
 
         // pub transform
         static tf::TransformBroadcaster br;
