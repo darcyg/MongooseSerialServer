@@ -197,6 +197,12 @@ void StatusPublisher::STM32_Encoder_IMU_Parse(std::vector<unsigned char> data)
     unsigned long gyro_data = 0;
     int gyro_state = 0;
 
+    unsigned long gyro_angular_vel = 0;
+    int gyro_angular_vel_state = 0;
+
+    unsigned long gyro_acc_x = 0;
+    int gyro_acc_x_state = 0;
+
     //from encoder.
     float speed_x = 0.0;
     float speed_y = 0.0;
@@ -404,10 +410,24 @@ void StatusPublisher::STM32_Encoder_IMU_Parse(std::vector<unsigned char> data)
                 // std::cout << "gyro data:" << car_status.gyro << std::endl;
             }
 
-            // std::cout << "speed_x:" << car_status.velocity_x << std::endl;
-            // std::cout << "speed_y:" << car_status.velocity_y << std::endl;
-            // std::cout << "angular_vel:" << angular_vel << std::endl
-            //           << std::endl;
+            gyro_angular_vel |= data[38];
+            gyro_angular_vel = (gyro_angular_vel << 8);
+            gyro_angular_vel |= data[39];
+            gyro_angular_vel_state = data[40];
+            if(gyro_angular_vel_state == 0)
+            {
+              car_status.m_gyro_angular_vel = gyro_angular_vel / 100;
+              std::cout << "angular vel from gyro:" << car_status.m_gyro_angular_vel << std::endl;
+            }
+            else
+            {
+              car_status.m_gyro_angular_vel = -gyro_angular_vel / 100;
+              std::cout << "angular vel from gyro:" << car_status.m_gyro_angular_vel << std::endl;
+            }
+            std::cout << "speed_x:" << car_status.velocity_x << std::endl;
+            std::cout << "speed_y:" << car_status.velocity_y << std::endl;
+            std::cout << "angular_vel:" << angular_vel << std::endl
+                      << std::endl;
             // std::cout << "imu_acc_x:" << imu_acc_x << std::endl;
             // std::cout << "imu_acc_y:" << imu_acc_y << std::endl;
             // std::cout << "imu_acc_z:" << imu_acc_z << std::endl
@@ -423,6 +443,9 @@ void StatusPublisher::STM32_Encoder_IMU_Parse(std::vector<unsigned char> data)
 
             // std::cout << "time_stamp:" << time_stamp_sensors << std::endl
             //           << std::endl;
+            std::cout << "Gyro angular:" << car_status.gyro << std::endl;
+            std::cout << "Gyro angular vel:" << car_status.m_gyro_angular_vel << std::endl
+                      << std::endl;
             break;
 
         default:
@@ -553,8 +576,8 @@ void StatusPublisher::Refresh()
 
         // the robot and the IMU are the same coord.
         // angle_speed = car_status.IMU[5];
-        angle_speed = car_status.angular_vel;
-        std::cout << "angular vel from Encoder:" << angle_speed << std::endl;
+        angle_speed = car_status.m_gyro_angular_vel;
+        // std::cout << "angular vel from Gyro:" << angle_speed << std::endl;
 
         CarTwist.angular.z = angle_speed;
         // CarTwist.angular.z = 0.0f;

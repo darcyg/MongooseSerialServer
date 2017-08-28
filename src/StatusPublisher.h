@@ -47,7 +47,9 @@ typedef struct {
     float IMU[9];//mpu9250 9轴数据
     unsigned int time_stamp;//时间戳
     float gyro;
-    
+    float m_gyro_angular_vel;
+    float m_gyro_acc_x;
+
 }UPLOAD_STATUS;
 
 class StatusPublisher
