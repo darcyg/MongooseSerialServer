@@ -15,6 +15,10 @@
 #include <sensor_msgs/point_cloud2_iterator.h>
 #include <sensor_msgs/PointField.h>
 
+#include <list>
+#include <time.h>
+// #include <chrono>
+
 #define PI 3.14159265
 
 namespace xqserial_server
@@ -72,6 +76,20 @@ public:
     std_msgs::Float64 get_power();
     nav_msgs::Odometry get_odom();
     UPLOAD_STATUS car_status;
+    
+    std::list<float> ml_position_x;
+    std::list<float> ml_position_y;
+    std::list<float> ml_gyro_theta;
+    std::list<float> ml_gyro_angular_vel;
+    std::list<float> ml_encoder_vx;
+    std::list<float> ml_encoder_vy;
+
+    float mf_average_position_x;
+    float mf_average_position_y;
+    float mf_average_gyro_theta;
+    float mf_average_gyro_angular_vel;
+    float mf_average_encoder_vx;
+    float mf_average_encoder_vy;
 
 private:
 

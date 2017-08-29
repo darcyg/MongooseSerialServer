@@ -4,6 +4,8 @@
 #include <math.h>
 #include <stdlib.h>
 
+using namespace std;
+
 #define DISABLE 0
 #define ENABLE 1
 
@@ -110,6 +112,7 @@ void StatusPublisher::Update(const char data[], unsigned int len)
         current_str = data[i];
         // unsigned int temp=(unsigned int)current_str;
         // std::cout<<temp<<std::endl;
+
         //判断是否有新包头
         if (last_str[0] == PACKAGE_END && last_str[1] == PACKAGE_BEGIN && current_str == COMMOND_BIT) //包头 205 235 215
         {
@@ -142,19 +145,25 @@ void StatusPublisher::Update(const char data[], unsigned int len)
             vdataBuffer.push_back(current_str);
             if (vdataBuffer.size() == PACKAGE_LEN)
             {
+                //Compute time cost of parse data from sensors.
+                clock_t start = clock();
                 STM32_Encoder_IMU_Parse(vdataBuffer);
+                clock_t stop = clock();
+                double elapsed = (double)(stop - start) * 1000.0 /CLOCKS_PER_SEC;
+                ROS_INFO("Time cost of data parse:[%f]", elapsed);
+
                 mbUpdated = true;
                 start_parse = false;
 
                 //Raw data from serial.
                 for (int j = 0; j < PACKAGE_LEN; ++j)
                 {
-                    std::cout << "data:" << (int)vdataBuffer[j] << std::endl;
-                    //输出异常值
-                    // if((int)vdataBuffer[3] !=0 || (int)vdataBuffer[4] !=0)
-                    // {
-                    //     std::cout << "origin vel:" << (int)vdataBuffer[3] << " " << (int)vdataBuffer[4] << std::endl;
-                    // }
+                    // std::cout << "data:" << (int)vdataBuffer[j] << std::endl;
+                    // 输出异常值
+                    if((int)vdataBuffer[3] !=0 || (int)vdataBuffer[4] !=0)
+                    {
+                        std::cout << "origin gyro theta:" << (int)vdataBuffer[35] << " " << (int)vdataBuffer[36] << " " << (int)vdataBuffer[37] << std::endl;
+                    }
                 }
                 vdataBuffer.clear();
             }
@@ -256,17 +265,43 @@ void StatusPublisher::STM32_Encoder_IMU_Parse(std::vector<unsigned char> data)
             speed_x_temp |= data[4];
             speed_x = (float)(speed_x_temp / 100.0);
             speed_x_check = (int)data[5];
-            // std::cout << "x符号判断：" << (int)data[5] << std::endl;
 
             if (speed_x_check == 1)
             {
                 car_status.velocity_x = -speed_x;
-                // std::cout <<  "x: " << car_status.velocity_x << std::endl;
             }
             else
             {
                 car_status.velocity_x = speed_x;
-                // std::cout <<  "x: " << car_status.velocity_x << std::endl;
+            }
+
+            //计算数据的平均值
+            if (ml_encoder_vx.size() < 10)
+            {
+                ml_encoder_vx.push_back(car_status.velocity_x);
+            }
+            else
+            {
+                ml_encoder_vx.pop_front();
+                ml_encoder_vx.push_back(car_status.velocity_x);
+            }
+
+            if (ml_encoder_vx.size() == 10)
+            {
+                mf_average_encoder_vx = 0;
+                for (std::list<float>::iterator it = ml_encoder_vx.begin(); it != ml_encoder_vx.end(); ++it)
+                {
+                    mf_average_encoder_vx += *it;
+                    // std::cout << "Velocity x:" << *it << std::endl;
+                }
+                mf_average_encoder_vx = mf_average_encoder_vx / 10;
+                // std::cout << "average vx data:" << mf_average_encoder_vx << std::endl;
+            }
+
+            if (abs(car_status.velocity_x) > 5 * abs(mf_average_encoder_vx) || abs(car_status.velocity_x) < abs(mf_average_encoder_vx) / 5)
+            {
+                car_status.velocity_x = mf_average_encoder_vx;
+                // std::cout << "ERROR data vel x:" << car_status.velocity_x << std::endl;
             }
 
             //parse Vy.
@@ -287,6 +322,35 @@ void StatusPublisher::STM32_Encoder_IMU_Parse(std::vector<unsigned char> data)
             {
                 car_status.velocity_y = speed_y;
                 // std::cout <<  "y: " << car_status.velocity_y << std::endl;
+            }
+
+            //计算vy数据的平均值
+            if (ml_encoder_vy.size() < 10)
+            {
+                ml_encoder_vy.push_back(car_status.velocity_y);
+            }
+            else
+            {
+                ml_encoder_vy.pop_front();
+                ml_encoder_vy.push_back(car_status.velocity_y);
+            }
+
+            if (ml_encoder_vy.size() == 10)
+            {
+                mf_average_encoder_vy = 0;
+                for (std::list<float>::iterator it = ml_encoder_vy.begin(); it != ml_encoder_vy.end(); ++it)
+                {
+                    mf_average_encoder_vy += *it;
+                    // std::cout << "Velocity y:" << *it << std::endl;
+                }
+                mf_average_encoder_vy = mf_average_encoder_vy / 10;
+                // std::cout << "average vy data:" << mf_average_encoder_vy << std::endl;
+            }
+
+            if (abs(car_status.velocity_y) > 5 * abs(mf_average_encoder_vy) || abs(car_status.velocity_x) < abs(mf_average_encoder_vy) / 5)
+            {
+                car_status.velocity_y = mf_average_encoder_vy;
+                // std::cout << "ERROR data vel y:" << car_status.velocity_y << std::endl;
             }
 
             //parse W.
@@ -410,25 +474,84 @@ void StatusPublisher::STM32_Encoder_IMU_Parse(std::vector<unsigned char> data)
                 // std::cout << "gyro data:" << car_status.gyro << std::endl;
             }
 
+            //计算gyro数据的平均值
+            if (ml_gyro_theta.size() < 10)
+            {
+                ml_gyro_theta.push_back(car_status.gyro);
+            }
+            else
+            {
+                ml_gyro_theta.pop_front();
+                ml_gyro_theta.push_back(car_status.gyro);
+            }
+
+            if (ml_gyro_theta.size() == 10)
+            {
+                mf_average_gyro_theta = 0;
+                for (std::list<float>::iterator it = ml_gyro_theta.begin(); it != ml_gyro_theta.end(); ++it)
+                {
+                    mf_average_gyro_theta += *it;
+                    // std::cout << "theta:" << *it << std::endl;
+                }
+                mf_average_gyro_theta = mf_average_gyro_theta / 10;
+                // std::cout << "average theta data:" << mf_average_gyro_theta << std::endl;
+            }
+
+            if (abs(car_status.gyro) > 5 * abs(mf_average_gyro_theta) || abs(car_status.gyro) < abs(mf_average_gyro_theta) / 5)
+            {
+                car_status.gyro = mf_average_gyro_theta;
+                // std::cout << "ERROR data theta:" << car_status.gyro << std::endl;
+            }
+
             gyro_angular_vel |= data[38];
             gyro_angular_vel = (gyro_angular_vel << 8);
             gyro_angular_vel |= data[39];
             gyro_angular_vel_state = data[40];
-            if(gyro_angular_vel_state == 0)
+            if (gyro_angular_vel_state == 0)
             {
-              car_status.m_gyro_angular_vel = gyro_angular_vel / 100;
-              std::cout << "angular vel from gyro:" << car_status.m_gyro_angular_vel << std::endl;
+                car_status.m_gyro_angular_vel = (float)gyro_angular_vel / 100;
+                //   std::cout << "angular vel from gyro:" << car_status.m_gyro_angular_vel << std::endl;
             }
             else
             {
-              car_status.m_gyro_angular_vel = -gyro_angular_vel / 100;
-              std::cout << "angular vel from gyro:" << car_status.m_gyro_angular_vel << std::endl;
+                car_status.m_gyro_angular_vel = -((float)gyro_angular_vel / 100);
+                //   std::cout << "angular vel from gyro:" << car_status.m_gyro_angular_vel << std::endl;
             }
-            std::cout << "speed_x:" << car_status.velocity_x << std::endl;
-            std::cout << "speed_y:" << car_status.velocity_y << std::endl;
-            std::cout << "angular_vel:" << angular_vel << std::endl
-                      << std::endl;
+
+            //计算gyro 角速度数据的平均值
+            if (ml_gyro_angular_vel.size() < 10)
+            {
+                ml_gyro_angular_vel.push_back(car_status.m_gyro_angular_vel);
+            }
+            else
+            {
+                ml_gyro_angular_vel.pop_front();
+                ml_gyro_angular_vel.push_back(car_status.m_gyro_angular_vel);
+            }
+
+            if (ml_gyro_angular_vel.size() == 10)
+            {
+                mf_average_gyro_angular_vel = 0;
+                for (std::list<float>::iterator it = ml_gyro_angular_vel.begin(); it != ml_gyro_angular_vel.end(); ++it)
+                {
+                    mf_average_gyro_angular_vel += *it;
+                    // std::cout << "theta:" << *it << std::endl;
+                }
+                mf_average_gyro_angular_vel = mf_average_gyro_angular_vel / 10;
+                // std::cout << "average theta data:" << mf_average_gyro_angular_vel << std::endl;
+            }
+
+            if (abs(car_status.m_gyro_angular_vel) > 5 * abs(mf_average_gyro_angular_vel) || abs(car_status.m_gyro_angular_vel) < abs(mf_average_gyro_angular_vel) / 5)
+            {
+                car_status.m_gyro_angular_vel = mf_average_gyro_angular_vel;
+                // std::cout << "ERROR data gyro_angular_vel:" << car_status.m_gyro_angular_vel << std::endl;
+            }
+
             // std::cout << "imu_acc_x:" << imu_acc_x << std::endl;
+            // std::cout << "speed_x:" << car_status.velocity_x << std::endl;
+            // std::cout << "speed_y:" << car_status.velocity_y << std::endl;
+            // std::cout << "angular_vel:" << angular_vel << std::endl
+            //           << std::endl;
             // std::cout << "imu_acc_y:" << imu_acc_y << std::endl;
             // std::cout << "imu_acc_z:" << imu_acc_z << std::endl
             //           << std::endl;
@@ -443,9 +566,9 @@ void StatusPublisher::STM32_Encoder_IMU_Parse(std::vector<unsigned char> data)
 
             // std::cout << "time_stamp:" << time_stamp_sensors << std::endl
             //           << std::endl;
-            std::cout << "Gyro angular:" << car_status.gyro << std::endl;
-            std::cout << "Gyro angular vel:" << car_status.m_gyro_angular_vel << std::endl
-                      << std::endl;
+            // std::cout << "Gyro angular:" << car_status.gyro << std::endl;
+            // std::cout << "Gyro angular vel:" << car_status.m_gyro_angular_vel << std::endl
+                    //   << std::endl;
             break;
 
         default:
@@ -529,8 +652,7 @@ void StatusPublisher::Refresh()
         // ROS_INFO("time_stamp_last:[%d]", (int)time_stamp_last);
 
         //删除过大时间以及x，y方向的异常速度。
-        if (delta_time < 0 || delta_time > 500 || car_status.velocity_x > 0.7 || car_status.velocity_x < -0.7 || car_status.velocity_y > 0.7
-          || car_status.velocity_y < -0.7)
+        if (delta_time < 0 || delta_time > 500 || car_status.velocity_x > 0.7 || car_status.velocity_x < -0.7 || car_status.velocity_y > 0.7 || car_status.velocity_y < -0.7)
         {
             return;
         }
@@ -576,7 +698,7 @@ void StatusPublisher::Refresh()
 
         // the robot and the IMU are the same coord.
         // angle_speed = car_status.IMU[5];
-        angle_speed = car_status.m_gyro_angular_vel;
+        angle_speed = car_status.m_gyro_angular_vel * PI / 180;
         // std::cout << "angular vel from Gyro:" << angle_speed << std::endl;
 
         CarTwist.angular.z = angle_speed;
@@ -610,8 +732,8 @@ void StatusPublisher::Refresh()
         mOdomPub.publish(CarOdom);
 
         //Use this to make sure all odom data are right.
-        std::cout << "Odom: Sx" << CarOdom.pose.pose.position.x << "Sy: " << CarOdom.pose.pose.position.y << "Vx: "
-                <<  CarOdom.twist.twist.linear.x << "Vy: " <<  CarOdom.twist.twist.linear.y << "Vz: " << CarOdom.twist.twist.angular.z << std::endl;
+        // std::cout << "Odom: Sx" << CarOdom.pose.pose.position.x << "Sy: " << CarOdom.pose.pose.position.y << "Vx: "
+        //         <<  CarOdom.twist.twist.linear.x << "Vy: " <<  CarOdom.twist.twist.linear.y << "Vz: " << CarOdom.twist.twist.angular.z << std::endl;
 
         // pub transform
         static tf::TransformBroadcaster br;
