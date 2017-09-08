@@ -49,7 +49,6 @@ int main(int argc, char **argv)
     try
     {
         CallbackAsyncSerial serial(port, baud);
-        // ROS_INFO("This line:[%d]", __LINE__);
 
         serial.setCallback(boost::bind(&xqserial_server::StatusPublisher::Update, &xq_status, _1, _2));
         xqserial_server::DiffDriverController xq_diffdriver(max_speed, cmd_topic, &xq_status, &serial);
@@ -65,26 +64,19 @@ int main(int argc, char **argv)
 
          char cmd_str1[14] = {0xFF, 0x03, 0x09, 0x00, 0x1E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xEB, 0xED};
 
-        // int i = 0;
-        // // while (i < 1000)
-        // {
-        //     std::cout << "Run in this line:stop" << __LINE__ << std::endl;
-        //     serial.write(cmd_str1, 14);
-        //     i++;
-        // }
-
-        ros::Rate r(50); //发布周期为50hz
+         //发布周期为50hz
+        ros::Rate r(50); 
         while (ros::ok())
         {
-            // ROS_DEBUG_DELAYED_THROTTLE(10, "Waiting for service 'add_two_ints'");
             if (serial.errorStatus() || serial.isOpen() == false)
             {
                 cerr << "Error: serial port closed unexpectedly" << endl;
                 break;
             }
-            xq_status.Refresh(); //定时发布状态
+
+            //定时发布状态小车状态
+            xq_status.Refresh(); 
             r.sleep();
-            //cout<<"run"<<endl;
         }
 
     quit:

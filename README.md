@@ -1,5 +1,5 @@
 # xqserial_server
-xiaoqiang motor driver and low level ROS api package
+mongoose motor driver and low level ROS api package
     
 ## input topic
       name                                  type        
@@ -7,11 +7,11 @@ xiaoqiang motor driver and low level ROS api package
       
 ## output topic
        name                                 type                 frate
-    /xqserial_server/Odom            nav_msgs/Odometry            50hz
-    /xqserial_server/Pose2D          geometry_msgs/Pose2D         50hz
-    /xqserial_server/Power           std_msgs/Float64             50hz
-    /xqserial_server/StatusFlag      std_msgs/Int32               50hz
-    /xqserial_server/Twist           geometry_msgs/Twist          50hz
+    /mongoose_serial_server/Odom            nav_msgs/Odometry            50hz
+    /mongoose_serial_server/Pose2D          geometry_msgs/Pose2D         50hz
+    /mongoose_serial_server/Power           std_msgs/Float64             50hz
+    /mongoose_serial_server/StatusFlag      std_msgs/Int32               50hz
+    /mongoose_serial_server/Twist           geometry_msgs/Twist          50hz
     /tf                              odom-->base_footprint        50hz
     /tf_static                       base_footprint-->base_link   100hz
     
@@ -28,30 +28,28 @@ xiaoqiang motor driver and low level ROS api package
 ## Usage:
 ### download to xiaoqiang ros workspace
 ```
-cd ~/Documents/ros/src
-git clone https://github.com/BlueWhaleRobot/xqserial_server.git 
+cd ~/catkin_ws/src
+git clone https://github.com/lwc3258/MongooseSerialServer.git
 cd ..
 catkin_make
 ```
 ### Quickstart
 ```
-roslaunch xqserial_server xqserial.launch
+roslaunch mongoose_serial_server mongoose_serial_server.launch
 ```
-## Made with :heart: by BlueWhale Tech corp.
     
-    
-小强电机驱动和相关的ROS底层驱动程序。  
-## 使用方法：
-#### 安装到小强ROS工作目录
+
+Mongoose robot motor driver and ros interface for driver.
+## Usage：
+
+#### install
 ```
-cd ~/Documents/ros/src
-git clone https://github.com/BlueWhaleRobot/xqserial_server.git 
+cd ~/catkin_ws/src
+git clone https://github.com/lwc3258/MongooseSerialServer.git
 cd ..
 catkin_make
 ```
 ### 直接启动
 ```
-roslaunch xqserial_server xqserial.launch
+roslaunch mongoose_serial_server mongoose_serial_server.launch
 ```
-    
-## 由蓝鲸科技精 :heart: 制作。

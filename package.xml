@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
-  <name>xqserial_server</name>
+  <name>mongoose_serial_server</name>
   <version>1.0.1</version>
-  <description>The xqserial_server package</description>
+  <description>The mongoose_serial_server package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->

@@ -15,6 +15,7 @@
 #include <sensor_msgs/point_cloud2_iterator.h>
 #include <sensor_msgs/PointField.h>
 
+
 #include <list>
 #include <time.h>
 // #include <chrono>
@@ -90,6 +91,8 @@ public:
     float mf_average_gyro_angular_vel;
     float mf_average_encoder_vx;
     float mf_average_encoder_vy;
+
+    int g_obstacle_state;
 
 private:
 
