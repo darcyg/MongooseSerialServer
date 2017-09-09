@@ -29,8 +29,8 @@ int receive_data_size;
 StatusPublisher::StatusPublisher()
 {
     mbUpdated = false;
-    wheel_separation = 0.37;
-    wheel_radius = 0.06;
+    wheel_separation = 0.47;
+    wheel_radius = 0.1016;
 
     CarPos2D.x = 0.0;
     CarPos2D.y = 0.0;
@@ -147,7 +147,7 @@ void StatusPublisher::Update(const char data[], unsigned int len)
             {
                 //Compute time cost of parse data from sensors.
                 clock_t start = clock();
-                STM32_Encoder_IMU_Parse(vdataBuffer);
+                encoder_IMU_parse(vdataBuffer);
                 clock_t stop = clock();
                 double elapsed = (double)(stop - start) * 1000.0 / CLOCKS_PER_SEC;
                 // ROS_INFO("Time cost of data parse:[%f]", elapsed);
@@ -174,7 +174,7 @@ void StatusPublisher::Update(const char data[], unsigned int len)
     return;
 }
 
-void StatusPublisher::STM32_Encoder_IMU_Parse(std::vector<unsigned char> data)
+void StatusPublisher::encoder_IMU_parse(std::vector<unsigned char> data)
 {
     unsigned char i = 0;
     unsigned char command = 0;

@@ -20,7 +20,6 @@ int main(int argc, char **argv)
      }
 
     ROS_INFO("welcome to Mongoose serial server !");
-    ROS_DEBUG("Welcoe to Mongoose serial server !");
 
     ros::init(argc, argv, "xqserial_server");
     ros::start();
@@ -35,8 +34,8 @@ int main(int argc, char **argv)
     //获取小车机械参数
     double separation = 0, radius = 0;
     bool DebugFlag = false;
-    ros::param::param<double>("~wheel_separation", separation, 0.37);
-    ros::param::param<double>("~wheel_radius", radius, 0.15);
+    ros::param::param<double>("~wheel_separation", separation, 0.47);
+    ros::param::param<double>("~wheel_radius", radius, 0.1016);
     ros::param::param<bool>("~debug_flag", DebugFlag, false);
     xqserial_server::StatusPublisher xq_status(separation, radius);
 
